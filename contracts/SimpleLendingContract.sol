@@ -112,4 +112,8 @@ contract SimpleLendingContract {
         // Add the amount and a constant interest of 2 ethers
         return amount + 2 ether;
     }
+
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
 }
