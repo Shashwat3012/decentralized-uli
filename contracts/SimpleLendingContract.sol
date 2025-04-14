@@ -32,10 +32,28 @@ contract SimpleLendingContract {
     }
 
     // Function to request a loan
+    // function requestLoan(uint amount) public {
+    //     require(amount > 0, "Loan amount must be greater than 0");
+
+    //     // Calculate repay amount based on the loan details
+    //     uint repayAmount = calculateRepayAmount(amount);
+
+    //     // Create a new loan
+    //     loans[msg.sender] = Loan({
+    //         borrower: msg.sender,
+    //         requestedAmount: amount,
+    //         repayAmount: repayAmount,
+    //         interestRate: 2,
+    //         state: LoanState.Requested,
+    //         requestedDate: block.timestamp
+    //     });
+    // }
+
     function requestLoan(uint amount) public {
         require(amount > 0, "Loan amount must be greater than 0");
+        require(loans[msg.sender].state == LoanState(0), "Previous loan must be closed"); // Optional: restrict multiple loans
 
-        // Calculate repay amount based on the loan details
+        // Calculate repay amount
         uint repayAmount = calculateRepayAmount(amount);
 
         // Create a new loan
@@ -47,7 +65,23 @@ contract SimpleLendingContract {
             state: LoanState.Requested,
             requestedDate: block.timestamp
         });
+
+        // Auto fund the loan if enough balance
+        if (availableBalance >= amount) {
+            // Transfer the loan amount to borrower
+            payable(msg.sender).transfer(amount);
+
+            // Update state
+            loans[msg.sender].state = LoanState.Funded;
+
+            // Reduce from pool
+            availableBalance = availableBalance.sub(amount);
+        }
     }
+
+
+
+
 
     // Function to get loan details in a more readable format
     function getLoanDetails(address borrower) external view returns (Loan memory) {

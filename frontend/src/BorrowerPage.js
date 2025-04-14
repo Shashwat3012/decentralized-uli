@@ -8,7 +8,7 @@ function BorrowerPage({ state, setMessage, borrowerAddress }) {
   const [poolBalance, setPoolBalance] = useState(0);
   const [contract, setContract] = useState(null);
 
-  const [username, setUsername] = useState("");
+  const [borrowerId, setBorrowerId] = useState("");
   const [loanAmount, setLoanAmount] = useState("");
   const [selectedAction, setSelectedAction] = useState("requestLoan");
   const [repayAmount, setRepayAmount] = useState("");
@@ -30,29 +30,79 @@ function BorrowerPage({ state, setMessage, borrowerAddress }) {
     fetchBorrowerBalance();
   }, [state.web3, borrowerAddress]);
 
-  const handleRequestLoan = async () => {
-    if (state.contract && borrowerAddress) {
-      try {
-        const gasEstimate = await state.contract.methods
-          .requestLoan(state.web3.utils.toWei(loanAmount, "ether"))
-          .estimateGas({ from: borrowerAddress });
+    const autoApproveLoan = async (borrowerId) => {
+    const response = await fetch("http://localhost:3001/check-uli", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ borrowerId }),
+    });
 
+    const result = await response.json();
+    return result;
+    };
+
+
+
+
+
+//   const handleRequestLoan = async (borrowerId) => {
+//     if (state.contract && borrowerAddress) {
+//       try {
+//         const gasEstimate = await state.contract.methods
+//           .requestLoan(state.web3.utils.toWei(loanAmount, "ether"))
+//           .estimateGas({ from: borrowerAddress });
+
+//         await state.contract.methods
+//           .requestLoan(state.web3.utils.toWei(loanAmount, "ether"))
+//           .send({ from: borrowerAddress, gas: gasEstimate });
+
+//         setMessage(
+//           `Loan of ${loanAmount} Ether requested for user: ${username}`
+//         );
+//         setLoanAmount("");
+//       } catch (error) {
+//         console.error("Error requesting loan:", error);
+//         setMessage("Error requesting loan.");
+//       }
+//     } else {
+//       setMessage("Borrower address not available.");
+//     }
+//   };
+
+  const handleRequestLoan = async (borrowerId) => {
+    if (state.contract && borrowerAddress) {
+        try {
+        // Step 1: Auto-approve logic
+        const result = await autoApproveLoan(borrowerId);
+
+        if (!result.approved) {
+            setMessage(result.message || "Loan Rejected Automatically.");
+            return;
+        }
+
+        // Step 2: Estimate gas for requestLoan
+        const gasEstimate = await state.contract.methods
+            .requestLoan(state.web3.utils.toWei(loanAmount, "ether"))
+            .estimateGas({ from: borrowerAddress });
+
+        // Step 3: Request loan on smart contract
         await state.contract.methods
-          .requestLoan(state.web3.utils.toWei(loanAmount, "ether"))
-          .send({ from: borrowerAddress, gas: gasEstimate });
+            .requestLoan(state.web3.utils.toWei(loanAmount, "ether"))
+            .send({ from: borrowerAddress, gas: gasEstimate });
 
         setMessage(
-          `Loan of ${loanAmount} Ether requested for user: ${username}`
+            `Loan of ${loanAmount} Ether requested and auto-approved for user: ${borrowerId}`
         );
         setLoanAmount("");
-      } catch (error) {
+        } catch (error) {
         console.error("Error requesting loan:", error);
         setMessage("Error requesting loan.");
-      }
+        }
     } else {
-      setMessage("Borrower address not available.");
+        setMessage("Borrower address not available.");
     }
   };
+
 
   const handleRepayLoan = async (amount) => {
     if (state.contract && borrowerAddress) {
@@ -61,7 +111,7 @@ function BorrowerPage({ state, setMessage, borrowerAddress }) {
           from: borrowerAddress,
           value: state.web3.utils.toWei(amount, "ether"),
         });
-        setMessage(`Loan of ${amount} Ether repaid by user: ${username}`);
+        setMessage(`Loan of ${amount} Ether repaid by user: ${borrowerId}`);
         setRepayAmount("");
       } catch (error) {
         console.error("Error repaying loan:", error);
@@ -79,7 +129,9 @@ function BorrowerPage({ state, setMessage, borrowerAddress }) {
           .getLoanDetails(borrowerAddress)
           .call();
         console.log("Loan Details:", loanDetails);
-        setMessage(`Loan details viewed in the console for user: ${username}`);
+        setMessage(
+          `Loan details viewed in the console for user: ${borrowerId}`
+        );
       } catch (error) {
         console.error("Error viewing loan status:", error);
         setMessage("Error viewing loan status.");
@@ -95,7 +147,7 @@ function BorrowerPage({ state, setMessage, borrowerAddress }) {
     const amount = event.target.elements.repayAmount?.value;
 
     if (action === "requestLoan") {
-      handleRequestLoan();
+      handleRequestLoan(borrowerId);
     } else if (action === "repayLoan" && amount) {
       handleRepayLoan(amount);
     } else if (action === "viewLoan") {
@@ -245,7 +297,7 @@ function BorrowerPage({ state, setMessage, borrowerAddress }) {
             </label>
           </div>
 
-          {selectedAction === "requestLoan" && (
+          {/* {selectedAction === "requestLoan" && (
             <div id="requestLoanInput">
               <label className="block text-gray-700 text-sm font-bold mb-2">
                 Amount to Request (Ether):
@@ -258,6 +310,40 @@ function BorrowerPage({ state, setMessage, borrowerAddress }) {
                 />
               </label>
             </div>
+          )} */}
+
+          {selectedAction === "requestLoan" && (
+            <>
+              <div id="usernameInput">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Username:
+                  <input
+                    type="text"
+                    name="borrowerId"
+                    value={borrowerId}
+                    onChange={(e) => setBorrowerId(e.target.value)}
+                    placeholder="Enter your username"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    required
+                  />
+                </label>
+              </div>
+
+              <div id="requestLoanInput">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Amount to Request (Ether):
+                  <input
+                    type="number"
+                    name="loanAmount"
+                    value={loanAmount}
+                    onChange={(e) => setLoanAmount(e.target.value)}
+                    placeholder="Enter loan amount"
+                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    required
+                  />
+                </label>
+              </div>
+            </>
           )}
 
           {selectedAction === "repayLoan" && (
