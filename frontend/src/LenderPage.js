@@ -1,9 +1,14 @@
-// import React, { useState, useEffect } from "react";
-// import Web3 from "web3";
-// import LendingSystem from "./contracts/SimpleLendingContract.json";
+// Use ULI while requesting
+// Show pool balance
+// Add money to borrowers account
 
-// function LenderPage({ state, setMessage }) {
+
+// import React, { useState, useEffect } from "react";
+
+// function LenderPage({ state, setMessage, lenderAddress }) {
 //   const [poolBalance, setPoolBalance] = useState(0);
+//   const [selectedAction, setSelectedAction] = useState("addFunds");
+//   const [lenderWalletBalance, setLenderWalletBalance] = useState("");
 
 //   useEffect(() => {
 //     async function fetchPoolBalance() {
@@ -21,18 +26,30 @@
 //       }
 //     }
 
+//     async function fetchLenderWalletBalance() {
+//       if (state.web3 && lenderAddress) {
+//         try {
+//           const balanceWei = await state.web3.eth.getBalance(lenderAddress);
+//           const balanceEth = state.web3.utils.fromWei(balanceWei, "ether");
+//           setLenderWalletBalance(balanceEth);
+//         } catch (error) {
+//           console.error("Error fetching lender wallet balance:", error);
+//         }
+//       }
+//     }
+
 //     fetchPoolBalance();
-//   }, [state.contract, state.web3, setMessage]);
+//     fetchLenderWalletBalance();
+//   }, [state.contract, state.web3, lenderAddress, setMessage]);
 
 //   const handleAddFunds = async (amount) => {
-//     if (state.contract && state.lenderAddress) {
+//     if (state.contract && lenderAddress) {
 //       try {
 //         await state.contract.methods.addFunds().send({
-//           from: state.lenderAddress,
+//           from: lenderAddress,
 //           value: state.web3.utils.toWei(amount, "ether"),
 //         });
 //         setMessage(`${amount} Ether added to the pool.`);
-//         // Optionally, refetch the pool balance after adding funds
 //         const balanceWei = await state.contract.methods
 //           .getContractBalance()
 //           .call();
@@ -42,75 +59,126 @@
 //         console.error("Error adding funds:", error);
 //         setMessage("Error adding funds.");
 //       }
+//     } else {
+//       setMessage("Lender address not available.");
 //     }
 //   };
 
-//   const handleFundLoan = async (borrowerAddress) => {
-//     if (state.contract && state.lenderAddress) {
+//   const handleFundLoan = async (borrowerAddressToFund) => {
+//     if (state.contract && lenderAddress) {
 //       try {
 //         await state.contract.methods
-//           .fundLoan(borrowerAddress)
-//           .send({ from: state.lenderAddress });
-//         setMessage(`Loan funded for address: ${borrowerAddress}`);
+//           .fundLoan(borrowerAddressToFund)
+//           .send({ from: lenderAddress });
+//         setMessage(`Loan funded for address: ${borrowerAddressToFund}`);
 //       } catch (error) {
 //         console.error("Error funding loan:", error);
 //         setMessage("Error funding loan.");
 //       }
+//     } else {
+//       setMessage("Lender address not available.");
 //     }
 //   };
 
 //   const handleSubmit = (event) => {
 //     event.preventDefault();
-//     const action = event.target.elements.lenderAction.value;
-//     const amount = event.target.elements.addFundsAmount.value;
-//     const fundBorrowerAddress = event.target.elements.fundBorrowerAddress.value;
+//     const action = selectedAction;
+//     const amount = event.target.elements.addFundsAmount?.value;
+//     const fundBorrowerAddress =
+//       event.target.elements.fundBorrowerAddress?.value;
 
-//     if (action === "addFunds") {
+//     if (action === "addFunds" && amount) {
 //       handleAddFunds(amount);
-//     } else if (action === "fundLoan") {
+//     } else if (action === "fundLoan" && fundBorrowerAddress) {
 //       handleFundLoan(fundBorrowerAddress);
 //     }
 //   };
 
+//   const handleActionChange = (event) => {
+//     setSelectedAction(event.target.value);
+//   };
+
 //   return (
-//     <div>
-//       <h1>Lender Dashboard</h1>
-//       <div>
-//         <h2>Pool Information</h2>
-//         <p>Total Funds in Pool: {poolBalance} Ether</p>
+//     <div className="bg-gray-100 p-6 rounded-md shadow-md">
+//       <h1 className="text-2xl font-semibold mb-4 text-indigo-600">
+//         Lender Dashboard
+//       </h1>
+//       <div className="mb-4 p-4 bg-white rounded-md shadow-sm">
+//         <h2 className="text-lg font-semibold mb-2 text-gray-700">
+//           Lender Information
+//         </h2>
+//         <p className="text-gray-600">
+//           Address: <span className="font-bold">{lenderAddress}</span>
+//         </p>
+//         <p className="text-gray-600">
+//           Wallet Balance:{" "}
+//           <span className="font-bold">{lenderWalletBalance} Ether</span>
+//         </p>
 //       </div>
 
-//       <div>
-//         <h2>Lender Actions</h2>
-//         <form onSubmit={handleSubmit}>
-//           <label>
-//             Select Action:
-//             <select name="lenderAction">
-//               <option value="addFunds">Add Funds to Pool</option>
-//               <option value="fundLoan">Fund Loan to Borrower</option>
-//             </select>
-//           </label>
-//           <br />
+//       <div className="mb-4 p-4 bg-white rounded-md shadow-sm">
+//         <h2 className="text-lg font-semibold mb-2 text-gray-700">
+//           Pool Information
+//         </h2>
+//         <p className="text-gray-600">
+//           Total Funds in Pool: <span className="font-bold">{poolBalance}</span>{" "}
+//           Ether
+//         </p>
+//       </div>
 
-//           {/* Input for adding funds */}
-//           <div id="addFundsInput">
-//             <label>
-//               Amount to Add (Ether):
-//               <input type="number" step="any" name="addFundsAmount" />
+//       <div className="bg-white rounded-md shadow-sm p-4">
+//         <h2 className="text-lg font-semibold mb-2 text-gray-700">
+//           Lender Actions
+//         </h2>
+//         <form onSubmit={handleSubmit} className="space-y-4">
+//           <div>
+//             <label className="block text-gray-700 text-sm font-bold mb-2">
+//               Select Action:
+//               <select
+//                 name="lenderAction"
+//                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+//                 value={selectedAction}
+//                 onChange={handleActionChange}
+//               >
+//                 <option value="addFunds">Add Funds to Pool</option>
+//                 <option value="fundLoan">Fund Loan to Borrower</option>
+//               </select>
 //             </label>
-//             <br />
 //           </div>
 
-//           {/* Input for funding a specific borrower */}
-//           <div id="fundLoanInput" style={{ display: "none" }}>
-//             <label>
-//               Borrower Address to Fund:
-//               <input type="text" name="fundBorrowerAddress" />
-//             </label>
-//             <br />
-//           </div>
+//           {selectedAction === "addFunds" && (
+//             <div id="addFundsInput">
+//               <label className="block text-gray-700 text-sm font-bold mb-2">
+//                 Amount to Add (Ether):
+//                 <input
+//                   type="number"
+//                   step="any"
+//                   name="addFundsAmount"
+//                   className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+//                 />
+//               </label>
+//             </div>
+//           )}
 
-//           <button type="submit">Submit</button>
+//           {selectedAction === "fundLoan" && (
+//             <div id="fundLoanInput">
+//               <label className="block text-gray-700 text-sm font-bold mb-2">
+//                 Borrower Address to Fund:
+//                 <input
+//                   type="text"
+//                   name="fundBorrowerAddress"
+//                   className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+//                 />
+//               </label>
+//             </div>
+//           )}
+
+//           <button
+//             type="submit"
+//             className="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+//           >
+//             Submit
+//           </button>
 //         </form>
 //       </div>
 //     </div>
@@ -126,65 +194,112 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import React, { useState, useEffect } from "react";
 import Web3 from "web3";
-import LendingSystem from "./contracts/SimpleLendingContract.json";
+import LendingSystem from "./contracts/SimpleLendingContract.json"; // Import the contract JSON file
 
-function LenderPage({ state, setMessage }) {
+function LenderPage({ setMessage, lenderAddress }) {
   const [poolBalance, setPoolBalance] = useState(0);
   const [selectedAction, setSelectedAction] = useState("addFunds");
+  const [lenderWalletBalance, setLenderWalletBalance] = useState("");
+  const [contract, setContract] = useState(null);
 
   useEffect(() => {
-    async function fetchPoolBalance() {
-      if (state.contract) {
-        try {
-          const balanceWei = await state.contract.methods
-            .getContractBalance()
-            .call();
-          const balanceEth = state.web3.utils.fromWei(balanceWei, "ether");
-          setPoolBalance(balanceEth);
-        } catch (error) {
-          console.error("Error fetching pool balance:", error);
-          setMessage("Error fetching pool balance");
+    async function initializeContract() {
+      try {
+        // Initialize Web3
+        const web3 = new Web3(Web3.givenProvider || "http://127.0.0.1:7545");
+
+        // Get the network ID
+        const networkId = await web3.eth.net.getId();
+
+        // Get the deployed contract address from the JSON file
+        const deployedNetwork = LendingSystem.networks[networkId];
+        if (!deployedNetwork) {
+          setMessage("Contract not deployed on the current network.");
+          return;
         }
+
+        const contractInstance = new web3.eth.Contract(
+          LendingSystem.abi,
+          deployedNetwork.address
+        );
+
+        setContract(contractInstance);
+
+        // Fetch the pool balance
+        const balanceWei = await contractInstance.methods
+          .getContractBalance()
+          .call();
+        const balanceEth = web3.utils.fromWei(balanceWei, "ether");
+        setPoolBalance(balanceEth);
+
+        // Fetch the lender's wallet balance
+        const walletBalanceWei = await web3.eth.getBalance(lenderAddress);
+        const walletBalanceEth = web3.utils.fromWei(walletBalanceWei, "ether");
+        setLenderWalletBalance(walletBalanceEth);
+      } catch (error) {
+        console.error("Error initializing contract:", error);
+        setMessage("Error initializing contract.");
       }
     }
 
-    fetchPoolBalance();
-  }, [state.contract, state.web3, setMessage]);
+    initializeContract();
+  }, [lenderAddress, setMessage]);
 
   const handleAddFunds = async (amount) => {
-    if (state.contract && state.lenderAddress) {
+    if (contract && lenderAddress) {
       try {
-        await state.contract.methods.addFunds().send({
-          from: state.lenderAddress,
-          value: state.web3.utils.toWei(amount, "ether"),
+        await contract.methods.addFunds().send({
+          from: lenderAddress,
+          value: Web3.utils.toWei(amount, "ether"),
         });
         setMessage(`${amount} Ether added to the pool.`);
-        // Optionally, refetch the pool balance after adding funds
-        const balanceWei = await state.contract.methods
-          .getContractBalance()
-          .call();
-        const balanceEth = state.web3.utils.fromWei(balanceWei, "ether");
+
+        // Update the pool balance
+        const balanceWei = await contract.methods.getContractBalance().call();
+        const balanceEth = Web3.utils.fromWei(balanceWei, "ether");
         setPoolBalance(balanceEth);
       } catch (error) {
         console.error("Error adding funds:", error);
         setMessage("Error adding funds.");
       }
+    } else {
+      setMessage("Lender address or contract not available.");
     }
   };
 
-  const handleFundLoan = async (borrowerAddress) => {
-    if (state.contract && state.lenderAddress) {
+  const handleFundLoan = async (borrowerAddressToFund) => {
+    if (contract && lenderAddress) {
       try {
-        await state.contract.methods
-          .fundLoan(borrowerAddress)
-          .send({ from: state.lenderAddress });
-        setMessage(`Loan funded for address: ${borrowerAddress}`);
+        await contract.methods
+          .fundLoan(borrowerAddressToFund)
+          .send({ from: lenderAddress });
+        setMessage(`Loan funded for address: ${borrowerAddressToFund}`);
       } catch (error) {
         console.error("Error funding loan:", error);
         setMessage("Error funding loan.");
       }
+    } else {
+      setMessage("Lender address or contract not available.");
     }
   };
 
@@ -211,6 +326,19 @@ function LenderPage({ state, setMessage }) {
       <h1 className="text-2xl font-semibold mb-4 text-indigo-600">
         Lender Dashboard
       </h1>
+      <div className="mb-4 p-4 bg-white rounded-md shadow-sm">
+        <h2 className="text-lg font-semibold mb-2 text-gray-700">
+          Lender Information
+        </h2>
+        <p className="text-gray-600">
+          Address: <span className="font-bold">{lenderAddress}</span>
+        </p>
+        <p className="text-gray-600">
+          Wallet Balance:{" "}
+          <span className="font-bold">{lenderWalletBalance} Ether</span>
+        </p>
+      </div>
+
       <div className="mb-4 p-4 bg-white rounded-md shadow-sm">
         <h2 className="text-lg font-semibold mb-2 text-gray-700">
           Pool Information
@@ -241,7 +369,6 @@ function LenderPage({ state, setMessage }) {
             </label>
           </div>
 
-          {/* Input for adding funds */}
           {selectedAction === "addFunds" && (
             <div id="addFundsInput">
               <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -256,7 +383,6 @@ function LenderPage({ state, setMessage }) {
             </div>
           )}
 
-          {/* Input for funding a specific borrower */}
           {selectedAction === "fundLoan" && (
             <div id="fundLoanInput">
               <label className="block text-gray-700 text-sm font-bold mb-2">

@@ -58,7 +58,7 @@ module.exports = {
    */
 
   //ABI IN CLIENT FOLDER
-  contracts_build_directory: './client/src/contracts',
+  contracts_build_directory: './frontend/src/contracts',
   
   networks: {
     // Useful for testing. The `development` name is special - truffle uses it by default
